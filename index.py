@@ -25,6 +25,7 @@ def display_page(pathname):
     #elif pathname == '/':
     #    return app.layout
     else:
+        return
         #print(pathname)
     #    return app.layout
 
