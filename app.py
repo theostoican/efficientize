@@ -1,6 +1,7 @@
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+import plotly.graph_objs as go
 
 print(dcc.__version__) # 0.6.0 or above is required
 
@@ -28,6 +29,31 @@ index_page = html.Div([
 page_1_layout = html.Div([
     html.H1('Page 1'),
     html.Div(id='page-1-content'),
+    dcc.Graph(
+    figure=go.Figure(
+        data=[
+            go.Bar(
+                x=[1995, 1996],
+                y=[219, 146],
+                name='Rest of world',
+                marker=go.Marker(
+                    color=['rgb(55, 83, 109)', 'rgb(2, 240, 104)']
+                )
+            )
+        ],
+        layout=go.Layout(
+            title='US Export of Plastic Scrap',
+            showlegend=True,
+            legend=go.Legend(
+                x=0,
+                y=1.0
+            ),
+            margin=go.Margin(l=40, r=0, t=40, b=30)
+        )
+    ),
+    style={'height': 300},
+    id='my-graph'
+    ),
     html.Br(),
     dcc.Link('Go back to home', href='/'),
 
