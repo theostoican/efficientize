@@ -2,6 +2,7 @@ import subprocess
 import threading
 import datetime
 import os
+import config
 from time import sleep
 
 def worker():
@@ -11,6 +12,9 @@ def worker():
         
     # TODO: take into account error
     output, _ = process.communicate()
+
+def get_available_days():
+    print(os.listdir(config.LOGS_DIR))
     
 
 

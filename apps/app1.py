@@ -2,6 +2,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
+import tracking_window
 from app import app
 
 page_1_layout = html.Div([
@@ -14,7 +15,7 @@ page_1_layout = html.Div([
                 x=[1995, 1996],
                 y=[219, 146],
                 name='Rest of world',
-                marker=go.Marker(
+                marker=dict(
                     color=['rgb(55, 83, 109)', 'rgb(2, 240, 104)']
                 )
             )
@@ -22,11 +23,11 @@ page_1_layout = html.Div([
         layout=go.Layout(
             title='US Export of Plastic Scrap',
             showlegend=True,
-            legend=go.Legend(
+            legend=dict (
                 x=0,
                 y=1.0
             ),
-            margin=go.Margin(l=40, r=0, t=40, b=30)
+            margin=dict(l=40, r=0, t=40, b=30)
         )
     ),
     style={'height': 300},
