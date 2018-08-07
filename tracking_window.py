@@ -14,7 +14,7 @@ def worker():
     output, _ = process.communicate()
 
 def get_available_days():
-    print(os.listdir(config.LOGS_DIR))
+    return os.listdir(config.LOGS_DIR)
     
 
 
