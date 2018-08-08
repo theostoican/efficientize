@@ -1,1 +1,2 @@
 LOGS_DIR = "logs/"
+NUM_THREADS = 4
