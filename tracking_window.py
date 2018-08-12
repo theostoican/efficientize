@@ -10,39 +10,45 @@ from concurrent.futures import ThreadPoolExecutor
 
 class Tracker:
     def __init__(self):
-        executor = ThreadPoolExecutor(max_workers = config.NUM_THREADS)
+        self.executor = ThreadPoolExecutor(max_workers = config.NUM_THREADS)
        
         self.firstTime = None
         self.lastTime = None
         self.lastWindowName = None
 
-        self.timelineFileName = datetime.datetime.today().strftime('%Y-%m-%d')
-        self.timelineFileHandle = open(self.fileName, "a")
+        self.timelineFileName = config.LOGS_DIR + config.TIMELINE_DIR + datetime.datetime.today().strftime('%Y-%m-%d')
+        self.timelineFileHandle = open(self.timelineFileName, "a")
     
     def trackwindowName(self):
-        trackCommand="xdotool getactivewindowName getwindowNamename"
+        trackCommand="xdotool getactivewindow getwindowname"
 
         while True:
-            process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+            process = subprocess.Popen(trackCommand.split(), stdout=subprocess.PIPE)
 
             windowName, _ = process.communicate()
             time = datetime.datetime.now().strftime('%H:%M:%S')
 
             # Send timeline processing activity task
-            executor.submit(self.processTimeline, time, windowName)
+            self.executor.submit(self.processTimeline, time, windowName)
 
             sleep(1)
 
     def processTimeline(self, time, windowName):
+        print(windowName, self.lastWindowName)
         if windowName == self.lastWindowName:
             self.lastTime = time
-            record = time + "," + windowName + ","
-
-            self.timelineFileHandle.write(record)
         else:
+            if self.lastWindowName:
+                record = str(self.firstTime) + "," + str(self.lastTime) + "," + str(self.lastWindowName) + ",\n"
+                print(record)
+                self.timelineFileHandle.write(record)
+                self.timelineFileHandle.flush()
+
             self.lastWindowName = windowName
             self.firstTime = time
-
+            self.lastTime = time
+    def getAvailableDays(self):
+        return os.listdir(config.LOGS_DIR + config.TIMELINE_DIR)
 
 
 def worker():
@@ -53,10 +59,12 @@ def worker():
     # TODO: take into account error
     output, _ = process.communicate()
 
-def get_available_days():
-    return os.listdir(config.LOGS_DIR)
+
     
 
 
-t = threading.Thread(target = worker)
-t.start()
+#t = threading.Thread(target = worker)
+#t.start()
+
+#t = Tracker()
+#t.trackwindowName()
