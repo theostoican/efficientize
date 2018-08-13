@@ -37,9 +37,8 @@ class Tracker:
 
     def processTimeline(self, time, windowName):
         #print(windowName, self.lastWindowName)
-        if windowName == self.lastWindowName:
+        if windowName != self.lastWindowName:
             self.lastTime = time
-        else:
             if self.lastWindowName:
                 record = str(self.firstTime) + "," + str(self.lastTime) + "," + str(self.lastWindowName) + ",\n"
                 self.timelineFileHandle.write(record)
@@ -47,7 +46,6 @@ class Tracker:
 
             self.lastWindowName = windowName
             self.firstTime = time
-            self.lastTime = time
     def getAvailableDays(self):
         return os.listdir(config.LOGS_DIR + config.TIMELINE_DIR)
 
