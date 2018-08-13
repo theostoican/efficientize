@@ -6,8 +6,6 @@ import config
 from time import sleep, strftime
 from concurrent.futures import ThreadPoolExecutor
 
-
-
 class Tracker:
     def __init__(self):
         self.executor = ThreadPoolExecutor(max_workers = config.NUM_THREADS)
@@ -16,8 +14,12 @@ class Tracker:
         self.lastTime = None
         self.lastWindowName = None
 
-        self.timelineFileName = config.LOGS_DIR + config.TIMELINE_DIR + datetime.datetime.today().strftime('%Y-%m-%d')
+        self.timelineFileName = config.LOGS_DIR + config.TIMELINE_DIR + datetime.datetime.today().strftime('%Y-%m-%d')                
         self.timelineFileHandle = open(self.timelineFileName, "a")
+
+        # If this is a newly created file, print the header first
+        if os.stat(self.timelineFileName).st_size == 0:
+            self.timelineFileHandle.write("start,finish,window\n")
     
     def trackwindowName(self):
         trackCommand="xdotool getactivewindow getwindowname"
@@ -34,13 +36,12 @@ class Tracker:
             sleep(1)
 
     def processTimeline(self, time, windowName):
-        print(windowName, self.lastWindowName)
+        #print(windowName, self.lastWindowName)
         if windowName == self.lastWindowName:
             self.lastTime = time
         else:
             if self.lastWindowName:
                 record = str(self.firstTime) + "," + str(self.lastTime) + "," + str(self.lastWindowName) + ",\n"
-                print(record)
                 self.timelineFileHandle.write(record)
                 self.timelineFileHandle.flush()
 

@@ -2,10 +2,11 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
-from tracking_window import Tracker
+import threading
 
+from tracking_window import Tracker
 from app import app
-from apps import app1
+from apps import timeline_vis
 import config
 
 app.layout = html.Div([
@@ -41,7 +42,7 @@ def display_page(pathname):
         day = pathname[1:]
 
         if day in days:
-            return app1.page_1_layout
+            return timeline_vis.getTimelineLayout(day)
         return '404'
 
 app.css.append_css({
@@ -50,4 +51,7 @@ app.css.append_css({
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    # Start a thread corresponding to the tracker
+    t = threading.Thread(target = tracker.trackwindowName)
+    t.start()
+    app.run_server()
