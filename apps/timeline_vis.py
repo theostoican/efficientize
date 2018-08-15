@@ -13,10 +13,13 @@ from random import randint
 import config
 from app import app
 
+# Function to convert to Unix time
 def toUnixTime(dt):
     epoch =  datetime.datetime.utcfromtimestamp(0)
     return (dt - epoch).total_seconds() * 1000
 
+# Similarly to toUnixTime, this functions converts to the 'base' time, i.e.
+# the number of seconds elapsed since a particular time
 def toBaseTime(base, dt):
     return (dt - base).total_seconds() * 1000    
 
@@ -44,8 +47,11 @@ def getTimelineLayout(fileName):
 
             # We need to use the 'base' attribute of the axes in Plotly, since, when we
             # plot the dates, Plotly will, under the hood, compute the difference between
-            # 1 January 1970 and the current date. So, we need to provide another 'base' for this,
-            # and work with the difference between the date and that 'base' as our x_data.
+            # 1 January 1970 and the current date and will draw a bar from there up to our date.
+            # So, if we want to draw a bar from another date, we need to provide a 'base'
+            # for this, and work with the difference between one date and that 'base' as 
+            # our x_data.
+
             baseData.append([start])
             
             if lc == 0:
@@ -53,35 +59,38 @@ def getTimelineLayout(fileName):
 
             xRange[1] = datetime.datetime.strptime(row["finish"], "%H:%M:%S")
 
-            #x_data.append([1000])
+            # There are two ways that we can use to provide Plotly with dates:
+            #   -> via datetime
+            #   -> via integers, representing the ellapsed seconds since the
+            #       first event on the axis (the 'base')
 
-            #currentTime = datetime.datetime.now()
-            #currentUtcTime = currentTime.replace(tzinfo=timezone('UTC'))
-            #timeZoneDiff = (currentTime - currentUtcTime).total_seconds() * 1000
-            #print(timeZoneDiff)
+            # Issue1 & Sol: If we provide datetime, Plotly will under the hood
+            # compute  the offset since 1 Jan 1970 and will erroneously enlarge
+            # the width of the bar. Hence, we must use integers, since they
+            # will not be further processed.
+            
+            # Issue2 & Sol: If we provide integers, Plotly will convert
+            # integers to the local time of the browser (adding or subtracting
+            # hours from UTC time), without taking into account DST. Hence, we
+            # subtract that same difference between the timezones from the
+            # integer, by choosing one non-DST date, so that it will nullify
+            # what Plotly will add.
 
             dummyDate = datetime.datetime(1970, 1, 1)
             dummyLocalTime = tzlocal.get_localzone().localize(dummyDate)
             dummyUtcTime = pytz.utc.localize(dummyDate)
 
             diffTime = toBaseTime(dummyLocalTime, dummyUtcTime)
-            #print(xElem)
+
             #TODO: Open issue with numbers in range [1000, 9000]
             xData.append([toBaseTime(start, finish) - diffTime])
-            #x_data.append([finish])
 
             yData.append([randint(1, 4)])
-            #y_data.append([randint(1, 4)])
-            #y_data.append([randint(1, 4)])
             textData.append([row["window"]])
 
-            #text_data.append('Start time: ' + str(row["start"]) + \
-            #        ', Finish time: ' + str(row["finish"]))
             color = (randint(0, 255), randint(0, 255), randint(0, 255))
             colorData.append(['rgb' + str(color)])
             lc += 1
-
-        # print(x_data[0][0])
 
         # Return the layout with the correspondent data
         return html.Div([
@@ -113,15 +122,11 @@ def getTimelineLayout(fileName):
                             #        toUnixTime(datetime.datetime(2013, 11, 20))],
                             type = 'date'
                         ),
-                        yaxis=dict(rangemode='tozero',
-                                    autorange=True),
+                        #yaxis=dict(rangemode='tozero',
+                        #            autorange=True),
                         showlegend=False,
                         barmode='stack',
                         hovermode='closest',
-                        #legend=dict (
-                        #    x=0,
-                        #    y=1.0
-                        #),
                         margin=dict(l=40, r=0, t=40, b=30)
                     )
                 ),
