@@ -39,7 +39,7 @@ def getTimelineLayout(fileName):
 
         # Read data and prepare it for visualization
         for row in csvReader:
-            #if lc == 10:
+            #if lc == 3:
             #    break
 
             start =  datetime.datetime.strptime(fileName + " " + row["start"], "%Y-%m-%d %H:%M:%S")
@@ -55,9 +55,9 @@ def getTimelineLayout(fileName):
             baseData.append([start])
             
             if lc == 0:
-                xRange[0] = datetime.datetime.strptime(row["start"], "%H:%M:%S")
+                xRange[0] = start
 
-            xRange[1] = datetime.datetime.strptime(row["finish"], "%H:%M:%S")
+            xRange[1] = finish
 
             # There are two ways that we can use to provide Plotly with dates:
             #   -> via datetime
@@ -114,12 +114,36 @@ def getTimelineLayout(fileName):
                         )
                     for xElem, yElem, baseElem, colorElem, textElem in zip(xData, yData, baseData, colorData, textData)],
                     layout=go.Layout(
-                        title='US Export of Plastic Scrap',
+                        title='Work and Pause Timeline',
                         xaxis= dict(   
-                            #range = [x_range[0],
-                            #         x_range[1]],
+                            range = [xRange[0],
+                                     xRange[0] + datetime.timedelta(minutes=25)],
                             #range = [toUnixTime(datetime.datetime(2013, 10, 17)),
                             #        toUnixTime(datetime.datetime(2013, 11, 20))],
+                            #rangeselector=dict(
+                            #    buttons=list([
+                            #        dict(count=1,
+                            #            label='1m',
+                            #            step='minute',
+                            #            stepmode='backward'),
+                            #        dict(count=6,
+                            #            label='6m',
+                            #            step='minute',
+                            #            stepmode='backward'),
+                            #        dict(count=1,
+                            #            label='YTD',
+                            #            step='year',
+                            #            stepmode='todate'),
+                            #        dict(count=1,
+                            #            label='1y',
+                            #            step='year',
+                            #            stepmode='backward'),
+                            #        dict(step='all')
+                            #    ])
+                            #),
+                            rangeslider=dict(
+                                visible = True
+                            ),
                             type = 'date'
                         ),
                         #yaxis=dict(rangemode='tozero',
