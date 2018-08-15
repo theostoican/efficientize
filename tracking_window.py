@@ -6,6 +6,8 @@ import config
 from time import sleep, strftime
 from concurrent.futures import ThreadPoolExecutor
 
+
+#TODO: Add timer for end of day to create another file
 class Tracker:
     def __init__(self):
         self.executor = ThreadPoolExecutor(max_workers = config.NUM_THREADS)
@@ -22,13 +24,13 @@ class Tracker:
             self.timelineFileHandle.write("start,finish,window\n")
     
     def trackwindowName(self):
-        trackCommand="xdotool getactivewindow getwindowname"
+        trackCommand="xdotool getwindowfocus getwindowname"
 
         while True:
             process = subprocess.Popen(trackCommand.split(), stdout=subprocess.PIPE)
 
             windowName, _ = process.communicate()
-            time = datetime.datetime.now().strftime('%H:%M:%S')
+            time = datetime.datetime.utcnow().strftime('%H:%M:%S')
 
             # Send timeline processing activity task
             self.executor.submit(self.processTimeline, time, windowName)
@@ -39,6 +41,7 @@ class Tracker:
         #print(windowName, self.lastWindowName)
         if windowName != self.lastWindowName:
             self.lastTime = time
+            
             if self.lastWindowName:
                 record = str(self.firstTime) + "," + str(self.lastTime) + "," + str(self.lastWindowName) + ",\n"
                 self.timelineFileHandle.write(record)
