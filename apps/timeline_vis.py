@@ -23,19 +23,19 @@ def toBaseTime(base, dt):
 def getTimelineLayout(fileName):
     xData = []
     yData = []
-    text_data = []
-    color_data = []
-    x_range = [None, None]
-    base_data = []
+    textData = []
+    colorData = []
+    xRange = [None, None]
+    baseData = []
 
     pathToFile = config.LOGS_DIR + config.TIMELINE_DIR + fileName
 
-    with open(pathToFile, 'r') as csv_file:
-        csv_reader = csv.DictReader(csv_file)
+    with open(pathToFile, 'r') as csvFile:
+        csvReader = csv.DictReader(csvFile)
         lc = 0
 
         # Read data and prepare it for visualization
-        for row in csv_reader:
+        for row in csvReader:
             #if lc == 10:
             #    break
 
@@ -46,12 +46,12 @@ def getTimelineLayout(fileName):
             # plot the dates, Plotly will, under the hood, compute the difference between
             # 1 January 1970 and the current date. So, we need to provide another 'base' for this,
             # and work with the difference between the date and that 'base' as our x_data.
-            base_data.append([start])
+            baseData.append([start])
             
             if lc == 0:
-                x_range[0] = datetime.datetime.strptime(row["start"], "%H:%M:%S")
+                xRange[0] = datetime.datetime.strptime(row["start"], "%H:%M:%S")
 
-            x_range[1] = datetime.datetime.strptime(row["finish"], "%H:%M:%S")
+            xRange[1] = datetime.datetime.strptime(row["finish"], "%H:%M:%S")
 
             #x_data.append([1000])
 
@@ -65,24 +65,20 @@ def getTimelineLayout(fileName):
             dummyUtcTime = pytz.utc.localize(dummyDate)
 
             diffTime = toBaseTime(dummyLocalTime, dummyUtcTime)
-            print(dummyUtcTime, dummyLocalTime)
             #print(xElem)
-            print((dummyLocalTime-dummyUtcTime).total_seconds())
             #TODO: Open issue with numbers in range [1000, 9000]
-            x_data.append([toBaseTime(start, finish) - diffTime])
+            xData.append([toBaseTime(start, finish) - diffTime])
             #x_data.append([finish])
-            print(start)
-            print(finish)
-            print(x_data)
-            y_data.append([randint(1, 4)])
+
+            yData.append([randint(1, 4)])
             #y_data.append([randint(1, 4)])
             #y_data.append([randint(1, 4)])
-            text_data.append([row["window"]])
+            textData.append([row["window"]])
 
             #text_data.append('Start time: ' + str(row["start"]) + \
             #        ', Finish time: ' + str(row["finish"]))
             color = (randint(0, 255), randint(0, 255), randint(0, 255))
-            color_data.append(['rgb' + str(color)])
+            colorData.append(['rgb' + str(color)])
             lc += 1
 
         # print(x_data[0][0])
@@ -95,19 +91,19 @@ def getTimelineLayout(fileName):
                 figure=go.Figure(
                     data=[
                         go.Bar(
-                            x=x_elem,
+                            x=xElem,
                             y=[0],
-                            base=base_elem,
-                            width=y_elem,
+                            base=baseElem,
+                            width=yElem,
                             offset=[0],
-                            text=text_elem,
+                            text=textElem,
                             orientation='h',
                             name='',
                             marker=dict(
-                                color=color_elem
+                                color=colorElem
                             )
                         )
-                    for x_elem, y_elem, base_elem, color_elem, text_elem in zip(x_data, y_data, base_data, color_data, text_data)],
+                    for xElem, yElem, baseElem, colorElem, textElem in zip(xData, yData, baseData, colorData, textData)],
                     layout=go.Layout(
                         title='US Export of Plastic Scrap',
                         xaxis= dict(   
