@@ -30,7 +30,7 @@ class Tracker:
             process = subprocess.Popen(trackCommand.split(), stdout=subprocess.PIPE)
 
             windowName, _ = process.communicate()
-            time = datetime.datetime.utcnow().strftime('%H:%M:%S')
+            time = datetime.datetime.now().strftime('%H:%M:%S')
 
             # Send timeline processing activity task
             self.executor.submit(self.processTimeline, time, windowName)
