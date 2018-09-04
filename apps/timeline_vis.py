@@ -55,6 +55,7 @@ def getTimelineLayout(selectedDate):
 def page_1_dropdown(hourFile, selectedDate):
     xData = []
     yData = []
+    widthData = []
     textData = []
     colorData = []
     xRange = [None, None]
@@ -113,46 +114,48 @@ def page_1_dropdown(hourFile, selectedDate):
 
             #TODO: Open issue with numbers in range [1000, 9000]
             xData.append([toBaseTime(start, finish) - diffTime])
+            yData.append([0])
 
-            yData.append([randint(1, 4)])
-            textData.append([row["window"]])
+            widthData.append([randint(1, 4)])
+            textData.append([start.strftime("%H:%M:%S") + ' - ' + finish.strftime("%H:%M:%S") + '<br>' + row["window"]])
 
             color = (randint(0, 255), randint(0, 255), randint(0, 255))
             colorData.append(['rgb' + str(color)])
             lc += 1
     return {
-                    'data':[
-                        go.Bar(
-                            x=xElem,
-                            y=[0],
-                            base=baseElem,
-                            width=yElem,
-                            offset=[0],
-                            text=textElem,
-                            orientation='h',
-                            name='',
-                            marker=dict(
-                                color=colorElem
-                            )
-                        )
-                    for xElem, yElem, baseElem, colorElem, textElem in zip(xData, yData, baseData, colorData, textData)],
-                    'layout': go.Layout(
-                        title='Work and Pause Timeline',
-                        xaxis= dict(   
-                            #range = [xRange[0],
-                            #         xRange[0] + datetime.timedelta(minutes=25)],
-                            rangeslider=dict(
-                                #id = 'timeline-slider',
-                                visible = True
-                            ),
-                            type = 'date'
-                        ),
-                        #yaxis=dict(rangemode='tozero',
-                        #            autorange=True),
-                        showlegend=False,
-                        barmode='stack',
-                        hovermode='closest',
-                        margin=dict(l=40, r=0, t=40, b=30)
-                    )
+        'data':[
+            go.Bar(
+                x=xElem,
+                y=yElem,
+                base=baseElem,
+                width=widthElem,
+                offset=[0],
+                text=textElem,
+                orientation='h',
+                name='',
+                hoverinfo='text',
+                marker=dict(
+                    color=colorElem
+                )
+            )
+        for xElem, yElem, widthElem, baseElem, colorElem, textElem in zip(xData, yData, widthData, baseData, colorData, textData)],
+        'layout': go.Layout(
+            title='Work and Pause Timeline',
+            xaxis= dict(   
+                #range = [xRange[0],
+                #         xRange[0] + datetime.timedelta(minutes=25)],
+                rangeslider=dict(
+                    #id = 'timeline-slider',
+                    visible = True
+                ),
+                type = 'date'
+            ),
+            #yaxis=dict(rangemode='tozero',
+            #            autorange=True),
+            showlegend=False,
+            barmode='stack',
+            hovermode='closest',
+            margin=dict(l=40, r=0, t=40, b=30)
+        )
     }
                 
