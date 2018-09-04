@@ -16,7 +16,19 @@ class Tracker:
         self.lastTime = None
         self.lastWindowName = None
 
-        self.timelineFileName = config.LOGS_DIR + config.TIMELINE_DIR + datetime.datetime.today().strftime('%Y-%m-%d')                
+        self.currHour = None
+        #self.prepareFile()
+
+    def prepareFile(self):
+        self.currDay = datetime.datetime.today().strftime('%Y-%m-%d')
+        # TODO: Might be an issue when we are at the end of the day
+        self.currHour = datetime.datetime.now().strftime('%H')
+        self.currDayDir = config.LOGS_DIR + config.TIMELINE_DIR + \
+                self.currDay + '/'    
+        self.timelineFileName = self.currDayDir + self.currHour
+
+        if not os.path.exists(self.currDayDir):
+            os.makedirs(self.currDayDir)             
         self.timelineFileHandle = open(self.timelineFileName, "a")
 
         # If this is a newly created file, print the header first
@@ -30,15 +42,34 @@ class Tracker:
             process = subprocess.Popen(trackCommand.split(), stdout=subprocess.PIPE)
 
             windowName, _ = process.communicate()
-            time = datetime.datetime.now().strftime('%H:%M:%S')
+
+            datetimeObject = datetime.datetime.now()
+            time = datetimeObject.strftime('%H:%M:%S')
+            hour = datetimeObject.strftime('%H')
 
             # Send timeline processing activity task
-            self.executor.submit(self.processTimeline, time, windowName)
+            self.executor.submit(self.processTimeline, time, hour, windowName)
 
             sleep(1)
 
-    def processTimeline(self, time, windowName):
-        #print(windowName, self.lastWindowName)
+    def processTimeline(self, time, hour, windowName):
+        # Set up a new file for a new hour and flush the data for the
+        # previous hour if the hour has changed
+        if self.currHour is None or hour != self.currHour:
+            if self.lastWindowName:
+                # Flush the data
+                lastSecondPrevHour = datetime.datetime.strptime(self.currHour + ":59:59", "%H:%M:%S").strftime("%H:%M:%S")
+                print(lastSecondPrevHour)
+                record = str(self.firstTime) + "," + str(lastSecondPrevHour) + "," + str(self.lastWindowName) + ",\n"
+                self.timelineFileHandle.write(record)
+                self.timelineFileHandle.flush()
+
+                # Set new first time at the beginning of next hour
+                self.firstTime = datetime.datetime.strptime(hour + ":00:00", "%H:%M:%S").strftime("%H:%M:%S")
+            
+            # Set up new file
+            self.prepareFile()
+
         if windowName != self.lastWindowName:
             self.lastTime = time
             
