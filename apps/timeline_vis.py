@@ -43,7 +43,7 @@ def getTimelineLayout(selectedDate):
             value=hourFiles[-1]
         ),
         html.Div(children=selectedDate, id='date', style={'display': 'none'}),
-        dcc.Graph(id='timeline', style={'height': 300}),
+        dcc.Graph(id='timeline'),
         html.Br(),
         dcc.Link('Go back to home', href='/'),
     ])
@@ -116,7 +116,7 @@ def page_1_dropdown(hourFile, selectedDate):
             xData.append([toBaseTime(start, finish) - diffTime])
             yData.append([0])
 
-            widthData.append([randint(1, 4)])
+            widthData.append([randint(1,4)])
             textData.append([start.strftime("%H:%M:%S") + ' - ' + finish.strftime("%H:%M:%S") + '<br>' + row["window"]])
 
             color = (randint(0, 255), randint(0, 255), randint(0, 255))
@@ -152,6 +152,11 @@ def page_1_dropdown(hourFile, selectedDate):
             ),
             #yaxis=dict(rangemode='tozero',
             #            autorange=True),
+            yaxis=dict(
+                tickvals = [1, 2, 3, 4],
+                ticktext = ['Low', 'Medium', 'High', 'Streak'],
+                position=0.025
+            ),
             showlegend=False,
             barmode='stack',
             hovermode='closest',
