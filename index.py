@@ -9,6 +9,8 @@ from app import app
 from apps import timeline_vis
 import config
 
+from pynput.keyboard import Key, Listener
+
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     html.Div(id='page-content')
@@ -51,7 +53,4 @@ app.css.append_css({
 
 
 if __name__ == '__main__':
-    # Start a thread corresponding to the tracker
-    t = threading.Thread(target = tracker.trackwindowName)
-    t.start()
     app.run_server()
