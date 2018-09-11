@@ -5,13 +5,13 @@ import datetime
 import os
 import config
 from time import sleep, strftime
+import csv
 
 from pynput.keyboard import Key, Listener
 
 
 class Tracker:
     def __init__(self):
-
         # Variables for app tracker
         self.firstTime = None
         self.lastTime = None
@@ -23,6 +23,15 @@ class Tracker:
         self.numKeystrokes = 0
         self.currWindowNumKeyStrokes = 0
         self.keyStrokesLock = threading.Lock()
+
+        # Hashmaps for storing the time spent on apps and
+        # the keystrokes recorded while in those apps
+        self.timeMap = {}
+        self.keystrokesMap = {}
+
+        # Set how often we dump the top of the used apps (with
+        # respect to keystrokes and to time) to 5 seconds
+        self.intervalDump = 5
 
         # Start data processing thread
         # TODO: Modify variable name if we include other processing in the same
@@ -47,21 +56,32 @@ class Tracker:
             listener.join()
 
     def prepareFile(self):
+        # Variables used for keeping track of the timeline logs 
         self.currDay = datetime.datetime.today().strftime('%Y-%m-%d')
         # TODO: Might be an issue when we are at the end of the day
         self.currHour = datetime.datetime.now().strftime('%H')
-        self.currDayDir = config.LOGS_DIR + config.TIMELINE_DIR + \
+        self.timelineDayDir = config.LOGS_DIR + config.TIMELINE_DIR + \
                 self.currDay + '/'    
-        self.timelineFileName = self.currDayDir + self.currHour
+        timelineFileName = self.timelineDayDir + self.currHour
 
-        if not os.path.exists(self.currDayDir):
-            os.makedirs(self.currDayDir)             
-        self.timelineFileHandle = open(self.timelineFileName, "a")
+        if not os.path.exists(self.timelineDayDir):
+            os.makedirs(self.timelineDayDir)
+
+        self.timelineFileHandle = open(timelineFileName, "a")
+        self.timelineFileCsvWriter = csv.writer(self.timelineFileHandle)
 
         # If this is a newly created file, print the header first
-        if os.stat(self.timelineFileName).st_size == 0:
-            self.timelineFileHandle.write("start,finish,window,keystrokes\n")
-    
+        if os.stat(timelineFileName).st_size == 0:
+            self.timelineFileCsvWriter.writerow(["start", "finish", "window", "keystrokes"])
+
+        # Variables used for keeping track of the time statistics logs
+        self.timeDayDir = config.LOGS_DIR + config.TIME_DIR + \
+                self.currDay + '/'
+
+        # Variables used for keeping track of the keystrokes statistics logs  
+        self.keystrokesDayDir = config.LOGS_DIR + config.KEYSTROKES_DIR + \
+                self.currDay + '/'
+  
     def onPress(self, _):
         self.keyStrokesLock.acquire()
         self.numKeystrokes += 1
@@ -120,9 +140,7 @@ class Tracker:
                 self.currWindowNumKeyStrokes = numKeystrokes - firstPartKeystrokes
                 lastSecondPrevHour = datetime.datetime.strptime(self.currHour + ":59:59", "%H:%M:%S").strftime("%H:%M:%S")
                 print(lastSecondPrevHour)
-                record = str(self.firstTime) + "," + str(lastSecondPrevHour) + "," + \
-                         str(self.lastWindowName) + "," + str(firstPartKeystrokes / roundHourDiff) + ",\n"
-                self.timelineFileHandle.write(record)
+                self.timelineFileCsvWriter.writerow([self.firstTime, lastSecondPrevHour, self.lastWindowName, firstPartKeystrokes / roundHourDiff])
                 self.timelineFileHandle.flush()
 
                 # Set new first time at the beginning of next hour
@@ -143,9 +161,8 @@ class Tracker:
                 totalTime = (datetime.datetime.strptime(self.lastTime, "%H:%M:%S") - \
                     datetime.datetime.strptime(self.firstTime, "%H:%M:%S")).total_seconds()
 
-                record = str(self.firstTime) + "," + str(self.lastTime) + \
-                    "," + str(self.lastWindowName) + "," + str(numKeystrokes / totalTime) + ",\n"
-                self.timelineFileHandle.write(record)
+                self.timelineFileCsvWriter.writerow([self.firstTime,
+                    self.lastTime, self.lastWindowName, numKeystrokes / totalTime])
                 self.timelineFileHandle.flush()
 
             self.lastWindowName = windowName
@@ -154,11 +171,13 @@ class Tracker:
             self.currWindowNumKeyStrokes += numKeystrokes
 
 
-    def processKeyStrokes(self):
-        pass
-    
-    def processTimeData(self):
-        pass
+    def processKeyStrokes(self, windowName, numKeystrokes, dump):
+        self.keystrokesMap[windowName] += numKeystrokes
+        if dump % 5 == 0:
+            pass
+
+    def processTimeData(self, windowName, time, dump):
+        self.timeMap[windowName] += time
 
     def getAvailableDays(self):
         availDates = os.listdir(config.LOGS_DIR + config.TIMELINE_DIR)
