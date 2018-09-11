@@ -24,6 +24,28 @@ def toUnixTime(dt):
 def toBaseTime(base, dt):
     return (dt - base).total_seconds() * 1000    
 
+# Helper functions to determine the category in which a number of
+# keystrokes fits. There are 4 categories shown in the chart:
+#   -> LOW
+#   -> MEDIUM
+#   -> HIGH
+#   -> STREAK
+# keystrokesFreq represents the number of keystrokes/sec on average
+def getKeystrokeCategory(keystrokesFreq):
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+    STREAK = 4
+
+    if keystrokesFreq < 1:
+        return LOW
+    elif keystrokesFreq < 3:
+        return MEDIUM
+    elif keystrokesFreq < 4:
+        return HIGH
+    else:
+        return STREAK
+
 def getTimelineLayout(selectedDate):
     dateDir = config.LOGS_DIR + config.TIMELINE_DIR + selectedDate + '/'
     hourFiles = os.listdir(dateDir)
@@ -31,6 +53,8 @@ def getTimelineLayout(selectedDate):
     if len(hourFiles) == 0:
         return 'There is no data available for this day.'
     # Return the layout with the correspondent data
+
+    hourFiles.sort()
     
     return html.Div([
         html.H1('Page 1'),
@@ -39,7 +63,7 @@ def getTimelineLayout(selectedDate):
             id='my-dropdown',
             options=[
                 {'label': hourFile, 'value': hourFile}
-                    for hourFile in reversed(hourFiles)],
+                    for hourFile in hourFiles],
             value=hourFiles[-1]
         ),
         html.Div(children=selectedDate, id='date', style={'display': 'none'}),
@@ -116,8 +140,12 @@ def page_1_dropdown(hourFile, selectedDate):
             xData.append([toBaseTime(start, finish) - diffTime])
             yData.append([0])
 
-            widthData.append([randint(1,4)])
-            textData.append([start.strftime("%H:%M:%S") + ' - ' + finish.strftime("%H:%M:%S") + '<br>' + row["window"]])
+            keystrokesFreq = float(row["keystrokes"])
+
+            widthData.append([getKeystrokeCategory(keystrokesFreq)])
+            textData.append([start.strftime("%H:%M:%S") + ' - ' + \
+                finish.strftime("%H:%M:%S") + '<br>' + row["window"] + \
+                '<br>' + '{:.2f}'.format(keystrokesFreq) + ' keystrokes/s'])
 
             color = (randint(0, 255), randint(0, 255), randint(0, 255))
             colorData.append(['rgb' + str(color)])

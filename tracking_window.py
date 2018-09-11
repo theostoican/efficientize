@@ -121,7 +121,7 @@ class Tracker:
                 lastSecondPrevHour = datetime.datetime.strptime(self.currHour + ":59:59", "%H:%M:%S").strftime("%H:%M:%S")
                 print(lastSecondPrevHour)
                 record = str(self.firstTime) + "," + str(lastSecondPrevHour) + "," + \
-                         str(self.lastWindowName) + "," + str(firstPartKeystrokes) + ",\n"
+                         str(self.lastWindowName) + "," + str(firstPartKeystrokes / roundHourDiff) + ",\n"
                 self.timelineFileHandle.write(record)
                 self.timelineFileHandle.flush()
 
@@ -140,8 +140,11 @@ class Tracker:
                 print(str(numKeystrokes))
                 print('\n')
                 self.currWindowNumKeyStrokes = 0
+                totalTime = (datetime.datetime.strptime(self.lastTime, "%H:%M:%S") - \
+                    datetime.datetime.strptime(self.firstTime, "%H:%M:%S")).total_seconds()
+
                 record = str(self.firstTime) + "," + str(self.lastTime) + \
-                    "," + str(self.lastWindowName) + "," + str(numKeystrokes) + ",\n"
+                    "," + str(self.lastWindowName) + "," + str(numKeystrokes / totalTime) + ",\n"
                 self.timelineFileHandle.write(record)
                 self.timelineFileHandle.flush()
 
@@ -158,7 +161,11 @@ class Tracker:
         pass
 
     def getAvailableDays(self):
-        return os.listdir(config.LOGS_DIR + config.TIMELINE_DIR)
+        availDates = os.listdir(config.LOGS_DIR + config.TIMELINE_DIR)
+        
+        availDates.sort()
+        
+        return availDates
 
 
 def worker():
