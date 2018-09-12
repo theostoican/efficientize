@@ -18,6 +18,7 @@ class Tracker:
         self.lastWindowName = None
 
         self.currHour = None
+        self.currTime = None
         
         # Variables for keystroke tracker
         self.numKeystrokes = 0
@@ -29,9 +30,14 @@ class Tracker:
         self.timeMap = {}
         self.keystrokesMap = {}
 
+        # Variable used for knowing when we should dump statistics
+        # to a new file, corresponding to another day
+        self.currDay = None
+
         # Set how often we dump the top of the used apps (with
         # respect to keystrokes and to time) to 5 seconds
         self.intervalDump = 5
+        self.dumpCounter = 0
 
         # Start data processing thread
         # TODO: Modify variable name if we include other processing in the same
@@ -55,32 +61,47 @@ class Tracker:
         with Listener(on_press = self.onPress) as listener:
             listener.join()
 
-    def prepareFile(self):
-        # Variables used for keeping track of the timeline logs 
-        self.currDay = datetime.datetime.today().strftime('%Y-%m-%d')
-        # TODO: Might be an issue when we are at the end of the day
-        self.currHour = datetime.datetime.now().strftime('%H')
-        self.timelineDayDir = config.LOGS_DIR + config.TIMELINE_DIR + \
-                self.currDay + '/'    
-        timelineFileName = self.timelineDayDir + self.currHour
+    def createPathWithFile(self, pathToFile, fileName):
+        if not os.path.exists(pathToFile):
+            os.makedirs(pathToFile)
 
-        if not os.path.exists(self.timelineDayDir):
-            os.makedirs(self.timelineDayDir)
-
-        self.timelineFileHandle = open(timelineFileName, "a")
-        self.timelineFileCsvWriter = csv.writer(self.timelineFileHandle)
+        fileHandle = open(fileName, "a")
+        fileCsvWriter = csv.writer(fileHandle)
 
         # If this is a newly created file, print the header first
-        if os.stat(timelineFileName).st_size == 0:
-            self.timelineFileCsvWriter.writerow(["start", "finish", "window", "keystrokes"])
+        if os.stat(fileName).st_size == 0:
+            fileCsvWriter.writerow(["start", "finish", "window", "keystrokes"])
+
+        return fileHandle, fileCsvWriter
+
+    def prepareTimelineFile(self, day, hour):
+        currDay = day
+        self.currHour = hour
+
+        # Variables used for keeping track of the timeline logs 
+        timelineDayDir = config.LOGS_DIR + config.TIMELINE_DIR + \
+                currDay + '/'    
+        timelineFileName = timelineDayDir + self.currHour
+        self.timelineFileHandle, self.timelineFileCsvWriter = \
+                self.createPathWithFile(timelineDayDir, timelineFileName)
+    
+    def prepareStatisticsFile(self, time, day):
+        self.currTime = time
+        self.currDay = day
 
         # Variables used for keeping track of the time statistics logs
-        self.timeDayDir = config.LOGS_DIR + config.TIME_DIR + \
-                self.currDay + '/'
+        timeDayDir = config.LOGS_DIR + config.TIME_DIR + '/'
+        timeFileName = timeDayDir + self.currDay
+
+        self.timeFileHandle, self.timeFileCsvWriter = \
+            self.createPathWithFile(timeDayDir, timeFileName)
 
         # Variables used for keeping track of the keystrokes statistics logs  
-        self.keystrokesDayDir = config.LOGS_DIR + config.KEYSTROKES_DIR + \
-                self.currDay + '/'
+        keystrokesDayDir = config.LOGS_DIR + config.KEYSTROKES_DIR + '/'
+        keystrokesFileName = keystrokesDayDir + self.currDay
+
+        self.keystrokesFileHandle, self.keystrokesCsvWriter = \
+            self.createPathWithFile(keystrokesDayDir, keystrokesFileName)
   
     def onPress(self, _):
         self.keyStrokesLock.acquire()
@@ -95,9 +116,9 @@ class Tracker:
 
         windowName, _ = process.communicate()
 
-        datetimeObject = datetime.datetime.now()
-        time = datetimeObject.strftime('%H:%M:%S')
-        hour = datetimeObject.strftime('%H')
+        lastTimeRecord = datetime.datetime.now()
+        day = lastTimeRecord.strftime('%Y-%m-%d')
+        hour = lastTimeRecord.strftime('%H')
         self.keyStrokesLock.acquire()
         numKeystrokes = self.numKeystrokes
         #print(numKeystrokes)
@@ -105,16 +126,16 @@ class Tracker:
         self.keyStrokesLock.release()
 
         # Send timeline processing activity task
-        self.timelineQueue.put((time, hour, windowName, numKeystrokes))
+        self.timelineQueue.put((lastTimeRecord, day, hour, windowName, numKeystrokes))
         threading.Timer(1.0, self.trackWindowName).start()
     
     def dispatchJobs(self):
         while True: 
-            (time, hour, windowName, numKeystrokes) = self.timelineQueue.get()
-            self.processTimeline(time, hour, windowName, numKeystrokes)
+            (time, day, hour, windowName, numKeystrokes) = self.timelineQueue.get()
+            self.processTimeline(time, day, hour, windowName, numKeystrokes)
             self.timelineQueue.task_done()
 
-    def processTimeline(self, time, hour, windowName, numKeystrokes):
+    def processTimeline(self, time, day, hour, windowName, numKeystrokes):
         # Set up a new file for a new hour and flush the data for the
         # previous hour if the hour has changed or if this is the FIRST
         # information we record
@@ -123,46 +144,47 @@ class Tracker:
                 # Flush the data
                 #TODO: Divide the numKeyStrokes if it is a new hour
                 numKeystrokes += self.currWindowNumKeyStrokes
-                print(time)
-                print(self.firstTime)
-                print((datetime.datetime.strptime(time, "%H:%M:%S") - \
-                    datetime.datetime.strptime(self.firstTime, "%H:%M:%S")).total_seconds())
 
                 # Divide keystrokes between the two intervals (before the end of the hour and
                 # after it)
-                totalDiff = (datetime.datetime.strptime(time, "%H:%M:%S") - \
-                    datetime.datetime.strptime(self.firstTime, "%H:%M:%S")).total_seconds()
-                roundHourDiff = (datetime.datetime.strptime(self.currHour + ":59:59", "%H:%M:%S") - \
-                    datetime.datetime.strptime(self.firstTime, "%H:%M:%S")).total_seconds()
+                totalDiff = (time - self.firstTime).total_seconds()
+
+                lastTimePrevHour = time.replace(microsecond = 0, second = 0,
+                    minute = 0)
+                roundHourDiff = (lastTimePrevHour - self.firstTime).total_seconds()
 
                 firstPartKeystrokes = roundHourDiff / totalDiff * numKeystrokes
                 
                 self.currWindowNumKeyStrokes = numKeystrokes - firstPartKeystrokes
-                lastSecondPrevHour = datetime.datetime.strptime(self.currHour + ":59:59", "%H:%M:%S").strftime("%H:%M:%S")
-                print(lastSecondPrevHour)
-                self.timelineFileCsvWriter.writerow([self.firstTime, lastSecondPrevHour, self.lastWindowName, firstPartKeystrokes / roundHourDiff])
+
+                self.timelineFileCsvWriter.writerow(
+                    [self.firstTime.strftime("%H:%M:%S"), 
+                    lastTimePrevHour.strftime("%H:%M:%S"), self.lastWindowName,
+                    firstPartKeystrokes / roundHourDiff])
                 self.timelineFileHandle.flush()
 
                 # Set new first time at the beginning of next hour
-                self.firstTime = datetime.datetime.strptime(hour + ":00:00", "%H:%M:%S").strftime("%H:%M:%S")
+                self.firstTime = lastTimePrevHour
+
+                # Make this variable 0, since both the hour and windowName
+                # might change and we use this variable in the next if block
+                numKeystrokes = 0
             
             # Set up new file
-            self.prepareFile()
+            self.prepareTimelineFile(day, hour)
 
         if windowName != self.lastWindowName:
             self.lastTime = time
             
             if self.lastWindowName:
                 numKeystrokes += self.currWindowNumKeyStrokes
-                print(self.lastWindowName)
-                print(str(numKeystrokes))
-                print('\n')
                 self.currWindowNumKeyStrokes = 0
-                totalTime = (datetime.datetime.strptime(self.lastTime, "%H:%M:%S") - \
-                    datetime.datetime.strptime(self.firstTime, "%H:%M:%S")).total_seconds()
+                totalTime = (self.lastTime - self.firstTime).total_seconds()
 
-                self.timelineFileCsvWriter.writerow([self.firstTime,
-                    self.lastTime, self.lastWindowName, numKeystrokes / totalTime])
+                self.timelineFileCsvWriter.writerow(
+                    [self.firstTime.strftime("%H:%M:%S"),
+                    self.lastTime.strftime("%H:%M:%S"), self.lastWindowName,
+                    numKeystrokes / totalTime])
                 self.timelineFileHandle.flush()
 
             self.lastWindowName = windowName
@@ -170,14 +192,22 @@ class Tracker:
         elif self.lastWindowName is not None:
             self.currWindowNumKeyStrokes += numKeystrokes
 
-
-    def processKeyStrokes(self, windowName, numKeystrokes, dump):
-        self.keystrokesMap[windowName] += numKeystrokes
-        if dump % 5 == 0:
-            pass
-
-    def processTimeData(self, windowName, time, dump):
-        self.timeMap[windowName] += time
+    #def processStatistics(self, windowName, value, time, day, dump,):
+    #    
+    #    if day != self.currDay:
+    #        if self.currDay is not None:
+    #            totalTime = 
+    #            
+    #            
+    #    dataMap[windowName] += value
+    #    if dump % self.intervalDump == 0:
+    #        for key in dataMap:
+    #            csvWriter.writerow([key, dataMap[key]])
+    #        fileHandle.flush()
+    #        fileHandle.seek(0)
+    #def processTimeStatistics(self, windowName, time, day):
+    #    self.tim
+    
 
     def getAvailableDays(self):
         availDates = os.listdir(config.LOGS_DIR + config.TIMELINE_DIR)
