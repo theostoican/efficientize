@@ -279,19 +279,3 @@ class Tracker:
         # Atomically rename the temp file with the "official"
         # file name
         os.rename(statisticsTmpFileName, fileName)
-
-    def getAvailableDays(self):
-        availDates = os.listdir(config.LOGS_DIR + config.TIMELINE_DIR)
-        
-        availDates.sort()
-        
-        return availDates
-
-
-def worker():
-    bashCommand = "./tracking_window.sh"
-
-    process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-        
-    # TODO: take into account error
-    output, _ = process.communicate()
