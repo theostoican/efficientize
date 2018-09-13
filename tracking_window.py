@@ -18,26 +18,26 @@ class Tracker:
         self.lastWindowName = None
 
         self.currHour = None
-        self.currTime = None
         
         # Variables for keystroke tracker
         self.numKeystrokes = 0
-        self.currWindowNumKeyStrokes = 0
+        self.currWindowNameNumKeyStrokes = 0
         self.keyStrokesLock = threading.Lock()
 
-        # Hashmaps for storing the time spent on apps and
+        # Variables used for storing the time spent on apps and
         # the keystrokes recorded while in those apps
         self.timeMap = {}
         self.keystrokesMap = {}
+        self.currWindowName = None
 
         # Variable used for knowing when we should dump statistics
         # to a new file, corresponding to another day
         self.currDay = None
+        self.currTime = None
 
         # Set how often we dump the top of the used apps (with
         # respect to keystrokes and to time) to 5 seconds
         self.intervalDump = 5
-        self.dumpCounter = 0
 
         # Start data processing thread
         # TODO: Modify variable name if we include other processing in the same
@@ -61,7 +61,7 @@ class Tracker:
         with Listener(on_press = self.onPress) as listener:
             listener.join()
 
-    def createPathWithFile(self, pathToFile, fileName):
+    def createPathWithFile(self, pathToFile, fileName, header = None):
         if not os.path.exists(pathToFile):
             os.makedirs(pathToFile)
 
@@ -69,40 +69,28 @@ class Tracker:
         fileCsvWriter = csv.writer(fileHandle)
 
         # If this is a newly created file, print the header first
-        if os.stat(fileName).st_size == 0:
-            fileCsvWriter.writerow(["start", "finish", "window", "keystrokes"])
+        if os.stat(fileName).st_size == 0 and header is not None:
+            fileCsvWriter.writerow(header)
 
         return fileHandle, fileCsvWriter
 
     def prepareTimelineFile(self, day, hour):
         currDay = day
-        self.currHour = hour
+        timelineHeader = ["start", "finish", "window", "keystrokes"]
 
         # Variables used for keeping track of the timeline logs 
         timelineDayDir = config.LOGS_DIR + config.TIMELINE_DIR + \
                 currDay + '/'    
         timelineFileName = timelineDayDir + self.currHour
         self.timelineFileHandle, self.timelineFileCsvWriter = \
-                self.createPathWithFile(timelineDayDir, timelineFileName)
-    
-    def prepareStatisticsFile(self, time, day):
-        self.currTime = time
-        self.currDay = day
-
-        # Variables used for keeping track of the time statistics logs
-        timeDayDir = config.LOGS_DIR + config.TIME_DIR + '/'
-        timeFileName = timeDayDir + self.currDay
-
-        self.timeFileHandle, self.timeFileCsvWriter = \
-            self.createPathWithFile(timeDayDir, timeFileName)
-
-        # Variables used for keeping track of the keystrokes statistics logs  
-        keystrokesDayDir = config.LOGS_DIR + config.KEYSTROKES_DIR + '/'
-        keystrokesFileName = keystrokesDayDir + self.currDay
-
-        self.keystrokesFileHandle, self.keystrokesCsvWriter = \
-            self.createPathWithFile(keystrokesDayDir, keystrokesFileName)
-  
+                self.createPathWithFile(timelineDayDir, timelineFileName,
+                timelineHeader)
+        
+        # Temp files
+        self.timelineTmpFileName = config.LOGS_DIR + config.TMP_TIMELINE
+        self.timelineTmpHandle, self.timelineTmpCsvWriter = \
+            self.createPathWithFile(config.LOGS_DIR, self.timelineTmpFileName)
+        
     def onPress(self, _):
         self.keyStrokesLock.acquire()
         self.numKeystrokes += 1
@@ -130,20 +118,23 @@ class Tracker:
         threading.Timer(1.0, self.trackWindowName).start()
     
     def dispatchJobs(self):
+        dumpCnt = 0
+
         while True: 
             (time, day, hour, windowName, numKeystrokes) = self.timelineQueue.get()
-            self.processTimeline(time, day, hour, windowName, numKeystrokes)
+            self.processTimeline(windowName, time, numKeystrokes, day, hour)
+            self.processStatistics(windowName, time, numKeystrokes, day, dumpCnt)
             self.timelineQueue.task_done()
 
-    def processTimeline(self, time, day, hour, windowName, numKeystrokes):
+    def processTimeline(self, windowName, time, numKeystrokes, day, hour):
         # Set up a new file for a new hour and flush the data for the
         # previous hour if the hour has changed or if this is the FIRST
         # information we record
-        if self.currHour is None or hour != self.currHour:
-            if self.lastWindowName:
+        if hour != self.currHour:
+            if self.currHour is not None:
                 # Flush the data
                 #TODO: Divide the numKeyStrokes if it is a new hour
-                numKeystrokes += self.currWindowNumKeyStrokes
+                numKeystrokes += self.currWindowNameNumKeyStrokes
 
                 # Divide keystrokes between the two intervals (before the end of the hour and
                 # after it)
@@ -155,7 +146,7 @@ class Tracker:
 
                 firstPartKeystrokes = roundHourDiff / totalDiff * numKeystrokes
                 
-                self.currWindowNumKeyStrokes = numKeystrokes - firstPartKeystrokes
+                self.currWindowNameNumKeyStrokes = numKeystrokes - firstPartKeystrokes
 
                 self.timelineFileCsvWriter.writerow(
                     [self.firstTime.strftime("%H:%M:%S"), 
@@ -170,15 +161,16 @@ class Tracker:
                 # might change and we use this variable in the next if block
                 numKeystrokes = 0
             
-            # Set up new file
+            # Set up new file for the new hour
+            self.currHour = hour
             self.prepareTimelineFile(day, hour)
 
         if windowName != self.lastWindowName:
             self.lastTime = time
             
-            if self.lastWindowName:
-                numKeystrokes += self.currWindowNumKeyStrokes
-                self.currWindowNumKeyStrokes = 0
+            if self.lastWindowName is not None:
+                numKeystrokes += self.currWindowNameNumKeyStrokes
+                self.currWindowNameNumKeyStrokes = 0
                 totalTime = (self.lastTime - self.firstTime).total_seconds()
 
                 self.timelineFileCsvWriter.writerow(
@@ -189,25 +181,104 @@ class Tracker:
 
             self.lastWindowName = windowName
             self.firstTime = time
-        elif self.lastWindowName is not None:
-            self.currWindowNumKeyStrokes += numKeystrokes
+        else:
+            self.currWindowNameNumKeyStrokes += numKeystrokes
 
-    #def processStatistics(self, windowName, value, time, day, dump,):
-    #    
-    #    if day != self.currDay:
-    #        if self.currDay is not None:
-    #            totalTime = 
-    #            
-    #            
-    #    dataMap[windowName] += value
-    #    if dump % self.intervalDump == 0:
-    #        for key in dataMap:
-    #            csvWriter.writerow([key, dataMap[key]])
-    #        fileHandle.flush()
-    #        fileHandle.seek(0)
-    #def processTimeStatistics(self, windowName, time, day):
-    #    self.tim
-    
+    def processStatistics(self, windowName, time, numKeyStrokes, day, dumpCnt):
+        timeHeader = ["window", "time"]
+        keystrokesHeader = ["window", "keystrokes"]
+
+        timeDayDir = config.LOGS_DIR + config.TIME_DIR + '/'
+        keystrokesDayDir = config.LOGS_DIR + config.KEYSTROKES_DIR + '/'
+
+        # We have recorded at least once so far
+        if self.currDay is not None:
+            timeFileName = timeDayDir + self.currDay
+            keystrokesFileName = keystrokesDayDir + self.currDay
+
+        if day != self.currDay:
+            # If this is not the first record (when self.currDay would be
+            # none), proceed and dump the output for the previous day
+            if self.currDay is not None:
+
+                # Finish updating the time statistics map for the end of
+                # the day
+                lastTimePrevDay = time.replace(microsecond = 0, second = 0,
+                    minute = 0, hour = 0)
+                timeLeftBeforeEndOfDay = (lastTimePrevDay - \
+                    self.currTime).total_seconds()
+                self.timeMap[windowName] += timeLeftBeforeEndOfDay
+
+                # Finish updating the keystrokes statistics map for the end
+                # of the day
+                totalTime = (time - self.currTime).total_seconds()
+                keystrokesBeforeEndOfDay = timeLeftBeforeEndOfDay / totalTime * \
+                                numKeyStrokes
+                self.keystrokesMap[windowName] += keystrokesBeforeEndOfDay
+
+                # Update the parameters for the case in which both the day
+                # has ended and the app was switched with another one (dump
+                # the data for the previous day but also dump the data
+                # correspondent to the old app in the new day) 
+                numKeyStrokes -= keystrokesBeforeEndOfDay
+                self.currTime = lastTimePrevDay
+
+                # Dump the data we have gathered so far until the end of the 
+                # day
+                self.dumpStatistics(self.timeMap, timeFileName,
+                    timeHeader)
+                self.dumpStatistics(self.keystrokesMap, keystrokesFileName,
+                    keystrokesHeader)
+
+            # Modify the file names with respect to the new day
+            self.currDay = day
+            timeFileName = timeDayDir + self.currDay
+            keystrokesFileName = keystrokesDayDir + self.currDay
+
+        # If we already have at least one record, update the maps
+        # according to the new data
+        if self.currWindowName:
+            if self.currWindowName not in self.timeMap:
+                self.timeMap[self.currWindowName] = 0
+            self.timeMap[self.currWindowName] += (time - \
+                self.currTime).total_seconds()
+            
+            if self.currWindowName not in self.keystrokesMap:
+                self.keystrokesMap[self.currWindowName] = 0                                
+            self.keystrokesMap[self.currWindowName] += numKeyStrokes
+
+            # Dump at a specific interval into physical storage
+            self.dumpStatistics(self.timeMap, timeFileName,
+                timeHeader)
+            self.dumpStatistics(self.keystrokesMap, keystrokesFileName,
+                keystrokesHeader)
+
+
+        # Update the variables in order to be used for the next record
+        self.currWindowName = windowName
+        self.currTime = time
+
+    def dumpStatistics(self, dataMap, fileName, header):
+        # Create statistics file
+        statisticsTmpFileName = config.LOGS_DIR + config.TMP_STATISTICS
+        statisticsTmpHandle, statisticsTmpCsvWriter = \
+            self.createPathWithFile(config.LOGS_DIR, statisticsTmpFileName)        
+        
+        # Write header
+        statisticsTmpCsvWriter.writerow(header)
+
+        # Write data into file
+        for key in dataMap:
+            statisticsTmpCsvWriter.writerow([key, dataMap[key]])
+
+        # Flush on physical storage
+        statisticsTmpHandle.flush()
+        os.fsync(statisticsTmpHandle.fileno())
+        statisticsTmpHandle.close()
+
+        # Atomically rename the temp file with the "official"
+        # file name
+        os.rename(statisticsTmpFileName, fileName)
 
     def getAvailableDays(self):
         availDates = os.listdir(config.LOGS_DIR + config.TIMELINE_DIR)
@@ -224,13 +295,3 @@ def worker():
         
     # TODO: take into account error
     output, _ = process.communicate()
-
-
-    
-
-
-#t = threading.Thread(target = worker)
-#t.start()
-
-#t = Tracker()
-#t.trackwindowName()

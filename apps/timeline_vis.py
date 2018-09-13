@@ -178,8 +178,6 @@ def page_1_dropdown(hourFile, selectedDate):
                 ),
                 type = 'date'
             ),
-            #yaxis=dict(rangemode='tozero',
-            #            autorange=True),
             yaxis=dict(
                 tickvals = [1, 2, 3, 4],
                 ticktext = ['Low', 'Medium', 'High', 'Streak'],
