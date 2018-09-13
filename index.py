@@ -44,8 +44,14 @@ def display_page(pathname):
         # to read each time from the disk because new data might be stored
         # on disk while the server is running)
         days = getAvailableDays()
+
+        daysHtmlList = [html.Li([dcc.Link(day, href = day)], style={'font-size':'2vw'}) for day in days]
+
         # This is the index (a.k.a. main) page of the app
-        index_page = html.Div([html.Div([dcc.Link(day, href=day), html.Br()]) for day in days])
+        index_page = html.Div([
+            html.Center(html.H1("Available days")),
+            html.Center(html.Ul(daysHtmlList))
+        ])
 
         return index_page
     else: #pathname is not None:
@@ -56,11 +62,6 @@ def display_page(pathname):
         if day in days:
             return timeline_vis.getTimelineLayout(day)
         return '404'
-
-app.css.append_css({
-    'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'
-})
-
 
 if __name__ == '__main__':
     app.run_server()
