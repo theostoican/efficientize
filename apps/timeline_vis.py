@@ -26,16 +26,13 @@ def toBaseTime(base, dt):
 
 # Helper functions to determine the category in which a number of
 # keystrokes fits. There are 4 categories shown in the chart:
-#   -> LOW
-#   -> MEDIUM
-#   -> HIGH
-#   -> STREAK
+LOW = 1
+MEDIUM = 2
+HIGH = 3
+STREAK = 4
 # keystrokesFreq represents the number of keystrokes/sec on average
 def getKeystrokeCategory(keystrokesFreq):
-    LOW = 1
-    MEDIUM = 2
-    HIGH = 3
-    STREAK = 4
+    global LOW, MEDIUM, HIGH, STREAK
 
     if keystrokesFreq < 1:
         return LOW
@@ -46,6 +43,8 @@ def getKeystrokeCategory(keystrokesFreq):
     else:
         return STREAK
 
+# Function called from index.py. Put in a hidden div the list of hours
+# that are available for this day
 def getTimelineLayout(selectedDate):
     dateDir = config.LOGS_DIR + config.TIMELINE_DIR + selectedDate + '/'
     hourFiles = os.listdir(dateDir)
@@ -72,11 +71,15 @@ def getTimelineLayout(selectedDate):
         dcc.Link('Go back to home', href='/'),
     ])
 
-
+# After we have called getTimelineLayout, the dropdown would
+# have been populated and this callback is fired with a default
+# value selected from the dropdown and the input from index,py
+# (selectedDate, previously) from the hidden div
 @app.callback(dash.dependencies.Output('timeline', 'figure'),
               [dash.dependencies.Input('my-dropdown', 'value'),
                dash.dependencies.Input('date', 'children')])
 def page_1_dropdown(hourFile, selectedDate):
+    global LOW, MEDIUM, HIGH, STREAK
     xData = []
     yData = []
     widthData = []
@@ -119,7 +122,7 @@ def page_1_dropdown(hourFile, selectedDate):
             #       first event on the axis (the 'base')
 
             # Issue1 & Sol: If we provide datetime, Plotly will under the hood
-            # compute  the offset since 1 Jan 1970 and will erroneously enlarge
+            # compute the offset since 1 Jan 1970 and will erroneously enlarge
             # the width of the bar. Hence, we must use integers, since they
             # will not be further processed.
             
@@ -179,9 +182,9 @@ def page_1_dropdown(hourFile, selectedDate):
                 type = 'date'
             ),
             yaxis=dict(
-                tickvals = [1, 2, 3, 4],
+                tickvals = [LOW, MEDIUM, HIGH, STREAK],
                 ticktext = ['Low', 'Medium', 'High', 'Streak'],
-                position=0.025
+                position = 0.025
             ),
             showlegend=False,
             barmode='stack',

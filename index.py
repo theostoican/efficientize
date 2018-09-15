@@ -10,7 +10,7 @@ from pynput.keyboard import Key, Listener
 
 from tracking_window import Tracker
 from app import app
-from apps import timeline_vis
+from apps import timeline_vis, statistics_vis
 import config
 
 
@@ -54,7 +54,15 @@ def display_page(pathname):
         ])
 
         return index_page
-    else: #pathname is not None:
+    elif len(pathname) > 7 and pathname[:7] == '/stats/':
+        # Remove the '/stats/' from the beginning of the pathname in order
+        # to get the day
+        day = pathname[7:]
+
+        if day in days:
+            return statistics_vis.getStatisticsLayout(day)
+        return '404'
+    else:
         # Remove the '/' from the beginning of the pathname in order
         # to get the day
         day = pathname[1:]
