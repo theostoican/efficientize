@@ -30,41 +30,67 @@ def getStatisticsLayout(selectedDate):
     timeStatsFile = config.LOGS_DIR + config.TIME_DIR + selectedDate
     timeStatsHeap = []
     xAxisNumPoints = 5
+    numElemBarChart = 10
+    numElemPieChart = 6
 
     with open(timeStatsFile, 'r') as timeStatsIn:
         csvReader = csv.DictReader(timeStatsIn)
+        totalTime = 0
 
         for row in csvReader:
             window = row["window"]
             time = -(float)(row["time"])
+            totalTime += -time
             heapq.heappush(timeStatsHeap, (time, window))
         
-        #Error when heap empty TODO
-        topStats = [heapq.heappop(timeStatsHeap) for i in range(0, min(len(timeStatsHeap), 10))]
+        # Sanity check: existent but empty file
+        if len(timeStatsHeap) == 0:
+            return '404'
+        
+        # Variables for bar chart
+        topStats = [heapq.heappop(timeStatsHeap) for i in range(0, min(len(timeStatsHeap), numElemBarChart))]
         yData = [splitTextIntoHtmlLines(window) for (time, window) in topStats]
-        textData = [window + '<br>' + str(datetime.timedelta(seconds = int(-time))) for (time, window) in topStats]
-        #tickText = [str(datetime.timedelta(seconds = int(-time))) for (time, window) in topStats]
+        barTextData = [window + '<br>' + str(datetime.timedelta(seconds = int(-time))) for (time, window) in topStats]
         xData = [int(-time) for (time, window) in topStats]
         maxBarValue = max(xData)
         tickValues = [int(i * maxBarValue / xAxisNumPoints) for i in range(0, xAxisNumPoints + 1)]
         tickText = list(map(lambda secs : str(datetime.timedelta(seconds = secs)), tickValues))
 
-        # str(datetime.timedelta(seconds=-time))
-        print(topStats)
-        print(xData)
+        # Variables for pie chart
+        pieWihoutOthersSecs = sum(list(map(lambda p : -p[0], topStats[:min(len(topStats), numElemPieChart - 1)])))
+        othersSecs = int(totalTime - pieWihoutOthersSecs)
+
+        pieValues = [xData[i] for i in range(0, min(len(xData), numElemPieChart - 1))]
+        totalPieTime = str(datetime.timedelta(seconds = othersSecs + sum(pieValues)))
+        pieValues.append(othersSecs)
+
+        pieTextData = [barTextData[i] for i in range(0, min(len(barTextData), numElemPieChart - 1))]
+        pieTextData.append("Others" + '<br>' + str(datetime.timedelta(seconds = othersSecs)))
+
+        pieLabels = [yData[i] for i in range(0, min(len(yData), numElemPieChart - 1))]
+        pieLabels.append("Others")
+        
+        print(pieLabels)
 
         layout = html.Div([
-            html.H3('App 1'),
+            html.Center(html.H3("Time usage statistics (" + selectedDate + ")" + " - " + totalPieTime)),
             dcc.Graph(
-                id='example-graph',
+                id='time-stats-pie-chart',
                 figure={
                     'data': [
-                        {'x': [1, 2, 3], 'y': [4, 1, 2], 'type': 'bar', 'name': 'SF'},
-                        {'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': u'Montréal'},
+                        go.Pie(
+                            labels = pieLabels,
+                            values = pieValues,
+                            text = pieTextData,
+                            textinfo = 'percent',
+                            hoverinfo='text',
+                            ),
                     ],
-                    'layout': {
-                        'title': 'Dash Data Visualization'
-                    }
+                    'layout': go.Layout(
+                        height = 350,
+                        margin = dict(t = 10, b = 10),
+                        hovermode = 'closest',
+                    )
                 }
             ),
             dcc.Graph(
@@ -74,15 +100,13 @@ def getStatisticsLayout(selectedDate):
                         go.Bar(
                             x = xData,
                             y = yData,
-                            text = textData,
+                            text = barTextData,
                             width = [0.5 for i in range(0, len(xData))],
                             orientation = 'h',
                             hoverinfo='text',
-                            #width = 4
                         )
                     ],
                     'layout': go.Layout(
-                        title = 'Dash Data Visualization',
                         xaxis = dict(
                             tickvals = tickValues,
                             ticktext = tickText
@@ -92,9 +116,9 @@ def getStatisticsLayout(selectedDate):
                             ticks = 'outside',
                             tickcolor = 'rgba(0,0,0,0)'
                         ),
-                        height=700,
+                        height=550,
                         hovermode = 'closest',
-                        margin = dict(l=200, r=40, t=40, b=30),
+                        margin = dict(l=200, r=40, t=0, b=30),
                     )
                 }
             ),
