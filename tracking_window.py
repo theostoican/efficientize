@@ -185,17 +185,14 @@ class Tracker:
             self.currWindowNameNumKeyStrokes += numKeystrokes
 
     def processStatistics(self, windowName, time, numKeyStrokes, day, dumpCnt):
-        timeHeader = ["window", "time"]
-        keystrokesHeader = ["window", "keystrokes"]
+        statsHeader = ["window", "time", "keystrokes"]
 
-        timeDayDir = config.LOGS_DIR + config.TIME_DIR + '/'
-        keystrokesDayDir = config.LOGS_DIR + config.KEYSTROKES_DIR + '/'
+        statsDir = config.LOGS_DIR + config.STATS_DIR
 
         # We have recorded at least once so far
         if self.currDay is not None:
-            timeFileName = timeDayDir + self.currDay
-            keystrokesFileName = keystrokesDayDir + self.currDay
-
+            statsFileName = statsDir + self.currDay
+            
         if day != self.currDay:
             # If this is not the first record (when self.currDay would be
             # none), proceed and dump the output for the previous day
@@ -225,15 +222,15 @@ class Tracker:
 
                 # Dump the data we have gathered so far until the end of the 
                 # day
-                self.dumpStatistics(self.timeMap, timeFileName,
-                    timeHeader)
-                self.dumpStatistics(self.keystrokesMap, keystrokesFileName,
-                    keystrokesHeader)
+                self.dumpStatistics(statsFileName,
+                    statsHeader)
+            else:
+                self.loadPreviousStats(statsDir + day)
+
 
             # Modify the file names with respect to the new day
             self.currDay = day
-            timeFileName = timeDayDir + self.currDay
-            keystrokesFileName = keystrokesDayDir + self.currDay
+            statsFileName = statsDir + self.currDay
 
         # If we already have at least one record, update the maps
         # according to the new data
@@ -248,17 +245,38 @@ class Tracker:
             self.keystrokesMap[self.currWindowName] += numKeyStrokes
 
             # Dump at a specific interval into physical storage
-            self.dumpStatistics(self.timeMap, timeFileName,
-                timeHeader)
-            self.dumpStatistics(self.keystrokesMap, keystrokesFileName,
-                keystrokesHeader)
+            self.dumpStatistics(statsFileName,
+                statsHeader)
 
 
         # Update the variables in order to be used for the next record
         self.currWindowName = windowName
         self.currTime = time
 
-    def dumpStatistics(self, dataMap, fileName, header):
+    def loadPreviousStats(self, fileName):
+        # Try to integrate previous records for the same day,
+        # if they exist
+        try:
+            with open(fileName, 'r') as statsFin:
+                csvReader = csv.reader(statsFin, delimiter = ',')
+
+                for row in csvReader:
+                    window = row["window"]
+                    time = row["time"]
+                    keystrokes = row["keystrokes"]
+
+                    if window not in self.timeMap:
+                        self.timeMap[window] = time
+                        self.keystrokesMap[window] = keystrokes
+                    else:
+                        self.timeMap[window] += time
+                        self.keystrokesMap[window] += keystrokes
+        except IOError:
+            # If nothing was recorded so far in the current day, then do
+            # nothing
+            pass
+    
+    def dumpStatistics(self, fileName, header):
         # Create statistics file
         statisticsTmpFileName = config.LOGS_DIR + config.TMP_STATISTICS
         statisticsTmpHandle, statisticsTmpCsvWriter = \
@@ -268,8 +286,8 @@ class Tracker:
         statisticsTmpCsvWriter.writerow(header)
 
         # Write data into file
-        for key in dataMap:
-            statisticsTmpCsvWriter.writerow([key, dataMap[key]])
+        for key in self.timeMap:
+            statisticsTmpCsvWriter.writerow([key, self.timeMap[key], self.keystrokesMap[key]])
 
         # Flush on physical storage
         statisticsTmpHandle.flush()
