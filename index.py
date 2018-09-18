@@ -54,14 +54,26 @@ def display_page(pathname):
         ])
 
         return index_page
-    elif len(pathname) > 7 and pathname[:7] == '/stats/':
+    elif len(pathname) > 6 and pathname[:6] == '/stats':
         # Remove the '/stats/' from the beginning of the pathname in order
         # to get the day
-        day = pathname[7:]
+        remainingPathname = pathname[6:]
 
-        if day in days:
-            return statistics_vis.getStatisticsLayout(day)
-        return '404'
+        day = None
+        type = None
+
+        if remainingPathname[:6] == '/time/':
+            day = remainingPathname[6:]
+            type = 'time'
+        elif remainingPathname[:12] == '/keystrokes/':
+            day = remainingPathname[12:]
+            type = 'keystrokes'
+
+
+        if type is None or day not in days:
+            return '404'
+        return statistics_vis.getStatisticsLayout(day, type)
+
     else:
         # Remove the '/' from the beginning of the pathname in order
         # to get the day

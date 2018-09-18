@@ -62,8 +62,11 @@ class Tracker:
             listener.join()
 
     def createPathWithFile(self, pathToFile, fileName, header = None):
-        if not os.path.exists(pathToFile):
+        # Attempt to create path, if it does not already exist
+        try:
             os.makedirs(pathToFile)
+        except OSError:
+            pass
 
         fileHandle = open(fileName, "a")
         fileCsvWriter = csv.writer(fileHandle)
@@ -222,11 +225,10 @@ class Tracker:
 
                 # Dump the data we have gathered so far until the end of the 
                 # day
-                self.dumpStatistics(statsFileName,
+                self.dumpStatistics(statsDir, statsFileName,
                     statsHeader)
             else:
                 self.loadPreviousStats(statsDir + day)
-
 
             # Modify the file names with respect to the new day
             self.currDay = day
@@ -245,7 +247,7 @@ class Tracker:
             self.keystrokesMap[self.currWindowName] += numKeyStrokes
 
             # Dump at a specific interval into physical storage
-            self.dumpStatistics(statsFileName,
+            self.dumpStatistics(statsDir, statsFileName,
                 statsHeader)
 
 
@@ -258,12 +260,12 @@ class Tracker:
         # if they exist
         try:
             with open(fileName, 'r') as statsFin:
-                csvReader = csv.reader(statsFin, delimiter = ',')
+                csvReader = csv.DictReader(statsFin)
 
                 for row in csvReader:
                     window = row["window"]
-                    time = row["time"]
-                    keystrokes = row["keystrokes"]
+                    time = float(row["time"])
+                    keystrokes = int(row["keystrokes"])
 
                     if window not in self.timeMap:
                         self.timeMap[window] = time
@@ -276,7 +278,13 @@ class Tracker:
             # nothing
             pass
     
-    def dumpStatistics(self, fileName, header):
+    def dumpStatistics(self, statsDir, fileName, header):
+        # Attempt to create path, if it does not already exist
+        try:
+            os.makedirs(statsDir)
+        except OSError:
+            pass
+
         # Create statistics file
         statisticsTmpFileName = config.LOGS_DIR + config.TMP_STATISTICS
         statisticsTmpHandle, statisticsTmpCsvWriter = \

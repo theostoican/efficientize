@@ -14,9 +14,10 @@ from app import app
 
 def splitTextIntoHtmlLines(text):
     maxCharsPerLines = 30
-    if len(text) > 75:
-        text = text[:75] + '...'
-    print(len(text))
+    limitChars = 65
+
+    if len(text) > limitChars:
+        text = text[:limitChars] + '...'
     lines = textwrap.wrap(text, maxCharsPerLines)
     
     if len(lines) == 0:
@@ -26,54 +27,90 @@ def splitTextIntoHtmlLines(text):
 
     return brLines
 
-def getStatisticsLayout(selectedDate):
-    timeStatsFile = config.LOGS_DIR + config.TIME_DIR + selectedDate
-    timeStatsHeap = []
+def getStatisticsLayout(selectedDate, statType):
+    statsFile = config.LOGS_DIR + config.STATS_DIR + selectedDate
+    statsHeap = []
+    timeMap = {}
+    totalTime = 0
     xAxisNumPoints = 5
     numElemBarChart = 10
     numElemPieChart = 6
 
-    with open(timeStatsFile, 'r') as timeStatsIn:
-        csvReader = csv.DictReader(timeStatsIn)
-        totalTime = 0
+    with open(statsFile, 'r') as statsFin:
+        csvReader = csv.DictReader(statsFin)
+        totalValue = 0
 
         for row in csvReader:
             window = row["window"]
-            time = -(float)(row["time"])
-            totalTime += -time
-            heapq.heappush(timeStatsHeap, (time, window))
+            if statType == 'time':
+                value = -float(row["time"])
+            else:
+                timeMap[window] = float(row["time"])
+                value = -int(row["keystrokes"])
+                totalTime += timeMap[window]
+            totalValue += -value
+            heapq.heappush(statsHeap, (value, window))
         
         # Sanity check: existent but empty file
-        if len(timeStatsHeap) == 0:
+        if len(statsHeap) == 0:
             return '404'
         
         # Variables for bar chart
-        topStats = [heapq.heappop(timeStatsHeap) for i in range(0, min(len(timeStatsHeap), numElemBarChart))]
-        yData = [splitTextIntoHtmlLines(window) for (time, window) in topStats]
-        barTextData = [window + '<br>' + str(datetime.timedelta(seconds = int(-time))) for (time, window) in topStats]
-        xData = [int(-time) for (time, window) in topStats]
-        maxBarValue = max(xData)
-        tickValues = [int(i * maxBarValue / xAxisNumPoints) for i in range(0, xAxisNumPoints + 1)]
-        tickText = list(map(lambda secs : str(datetime.timedelta(seconds = secs)), tickValues))
+        topStats = [heapq.heappop(statsHeap) 
+            for i in range(0, min(len(statsHeap), numElemBarChart))]
+        
+        barYData = [splitTextIntoHtmlLines(window) for (value, window) in topStats]
+
+        if statType == 'time':          
+            barXData = [int(-value) for (value, window) in topStats]
+            barTextData = [window + '<br>' +
+                str(datetime.timedelta(seconds = \
+                    int(-value))) for (value, window) in topStats]  
+        else:
+            barXData = [-value for (value, window) in topStats]
+            barTextData = [window + '<br>' + str(-value) + ' ('
+                '{:.2f}'.format(-value / timeMap[window]) + ' keystrokes/s)' for (value, window) in topStats]
+
+        maxBarValue = max(barXData)
+
+        if statType == "time":
+            barTickValues = [int(i * maxBarValue / xAxisNumPoints) for i in range(0, xAxisNumPoints + 1)]
+            barTickText = list(map(lambda secs : str(datetime.timedelta(seconds = secs)), barTickValues))
+        else:
+            barTickValues = [int(i * maxBarValue / xAxisNumPoints) for i in range(0, xAxisNumPoints + 1)]
+            barTickText = barTickValues
 
         # Variables for pie chart
-        pieWihoutOthersSecs = sum(list(map(lambda p : -p[0], topStats[:min(len(topStats), numElemPieChart - 1)])))
-        othersSecs = int(totalTime - pieWihoutOthersSecs)
+        pieWihoutothersValue = sum(list(map(lambda p : -p[0], topStats[:min(len(topStats), numElemPieChart - 1)])))
+        pieValues = [barXData[i] for i in range(0, min(len(barXData), numElemPieChart - 1))]
 
-        pieValues = [xData[i] for i in range(0, min(len(xData), numElemPieChart - 1))]
-        totalPieTime = str(datetime.timedelta(seconds = othersSecs + sum(pieValues)))
-        pieValues.append(othersSecs)
+        if statType == 'time':
+            othersValue = int(totalValue - pieWihoutothersValue)
+            totalPieValue = str(datetime.timedelta(seconds = othersValue + sum(pieValues)))
+        else:
+            othersValue = totalValue - pieWihoutothersValue
+            totalPieValue = str(totalValue)
+
+        pieValues.append(othersValue)
 
         pieTextData = [barTextData[i] for i in range(0, min(len(barTextData), numElemPieChart - 1))]
-        pieTextData.append("Others" + '<br>' + str(datetime.timedelta(seconds = othersSecs)))
-
-        pieLabels = [yData[i] for i in range(0, min(len(yData), numElemPieChart - 1))]
+        if statType == "time":
+            pieTextData.append("Others" + '<br>' + str(datetime.timedelta(seconds = othersValue)))
+        else:
+            othersTime = totalTime - reduce(lambda x, y : x + y, [timeMap[window] for (value, window) in topStats])
+            freq = othersTime / othersTime
+            pieTextData.append("Others" + '<br>' + str(othersValue) + ' (' + 
+                '{:.2f}'.format(freq) + " keystrokes/s)")
+        pieLabels = [barYData[i] for i in range(0, min(len(barYData), numElemPieChart - 1))]
         pieLabels.append("Others")
-        
-        print(pieLabels)
+
+        if statType == 'time':
+            title = "Time usage statistics (" + selectedDate + ")" + " - " + totalPieValue
+        else:
+            title = "Keystrokes usage statistics (" + selectedDate + ")" + " - " + totalPieValue + " keystrokes"
 
         layout = html.Div([
-            html.Center(html.H3("Time usage statistics (" + selectedDate + ")" + " - " + totalPieTime)),
+            html.Center(html.H3(title)),
             dcc.Graph(
                 id='time-stats-pie-chart',
                 figure={
@@ -98,18 +135,18 @@ def getStatisticsLayout(selectedDate):
                 figure={
                     'data': [
                         go.Bar(
-                            x = xData,
-                            y = yData,
+                            x = barXData,
+                            y = barYData,
                             text = barTextData,
-                            width = [0.5 for i in range(0, len(xData))],
+                            width = [0.5 for i in range(0, len(barXData))],
                             orientation = 'h',
                             hoverinfo='text',
                         )
                     ],
                     'layout': go.Layout(
                         xaxis = dict(
-                            tickvals = tickValues,
-                            ticktext = tickText
+                            tickvals = barTickValues,
+                            ticktext = barTickText
                         ),
                         yaxis = dict(
                             # Trick to slide to the left the yaxis labels
