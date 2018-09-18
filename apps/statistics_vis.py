@@ -112,7 +112,7 @@ def getStatisticsLayout(selectedDate, statType):
         layout = html.Div([
             html.Center(html.H3(title)),
             dcc.Graph(
-                id='time-stats-pie-chart',
+                id='stats-pie-chart',
                 figure={
                     'data': [
                         go.Pie(
@@ -131,7 +131,7 @@ def getStatisticsLayout(selectedDate, statType):
                 }
             ),
             dcc.Graph(
-                id='time-stats-bar-chart',
+                id='stats-bar-chart',
                 figure={
                     'data': [
                         go.Bar(
@@ -159,15 +159,7 @@ def getStatisticsLayout(selectedDate, statType):
                     )
                 }
             ),
-            html.Div(id='app-1-display-value'),
             dcc.Link('Go Home', href='/')
         ])
 
         return layout
-
-
-@app.callback(
-    Output('app-1-display-value', 'children'),
-    [Input('app-1-dropdown', 'value')])
-def display_value(value):
-    return 'You have selected "{}"'.format(value)
