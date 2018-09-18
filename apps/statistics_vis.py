@@ -12,6 +12,25 @@ from functools import reduce
 import config
 from app import app
 
+def getTabsLayout(selectedDate):
+    return html.Div([
+        dcc.Tabs(id="tabs-header", value='tab-time', children=[
+            dcc.Tab(label='Time statistics', value='tab-time'),
+            dcc.Tab(label='Keystrokes statistics', value='tab-keystrokes'),
+        ]),
+        html.Div(id='tabs-content'),
+        html.Div(children=selectedDate, id='date', style={'display': 'none'}),
+    ])
+
+@app.callback(Output('tabs-content', 'children'),
+              [Input('tabs-header', 'value'),
+               Input('date', 'children')])
+def render_content(tab, selectedDate):
+    if tab == 'tab-time':
+        return getStatisticsLayout(selectedDate, 'time')
+    elif tab == 'tab-keystrokes':
+        return getStatisticsLayout(selectedDate, 'keystrokes')
+
 def splitTextIntoHtmlLines(text):
     maxCharsPerLines = 30
     limitChars = 65
@@ -104,32 +123,45 @@ def getStatisticsLayout(selectedDate, statType):
         pieLabels = [barYData[i] for i in range(0, min(len(barYData), numElemPieChart - 1))]
         pieLabels.append("Others")
 
+        
         if statType == 'time':
-            title = "Time usage statistics (" + selectedDate + ")" + " - " + totalPieValue
+            title = [html.H3(selectedDate), html.H3('Time : ' + str(totalPieValue))]
         else:
-            title = "Keystrokes usage statistics (" + selectedDate + ")" + " - " + totalPieValue + " keystrokes"
+            title = [html.H3(selectedDate), html.H3('Keystrokes : ' + str(totalPieValue))]
 
         layout = html.Div([
-            html.Center(html.H3(title)),
-            dcc.Graph(
-                id='stats-pie-chart',
-                figure={
-                    'data': [
-                        go.Pie(
-                            labels = pieLabels,
-                            values = pieValues,
-                            text = pieTextData,
-                            textinfo = 'percent',
-                            hoverinfo='text',
-                            ),
-                    ],
-                    'layout': go.Layout(
-                        height = 350,
-                        margin = dict(t = 10, b = 10),
-                        hovermode = 'closest',
-                    )
-                }
-            ),
+            html.Div([
+                html.Div(
+                    html.Center(title),
+                    className = 'three columns',
+                ),
+                html.Div(
+                    [dcc.Graph(
+                        id='stats-pie-chart',
+                        figure={
+                            'data': [
+                                go.Pie(
+                                    labels = pieLabels,
+                                    values = pieValues,
+                                    text = pieTextData,
+                                    textinfo = 'percent',
+                                    hoverinfo='text',
+                                    ),
+                            ],
+                            'layout': go.Layout(
+                                height = 300,
+                                margin = dict(t = 10, b = 10),
+                                hovermode = 'closest',
+                            )
+                        },
+                    )],
+                    style = {
+                            'float' : 'left',},
+                    className = 'six columns',
+                ),
+                ],
+                className = 'row',
+            ),     
             dcc.Graph(
                 id='stats-bar-chart',
                 figure={

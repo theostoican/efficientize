@@ -45,7 +45,18 @@ def display_page(pathname):
         # on disk while the server is running)
         days = getAvailableDays()
 
-        daysHtmlList = [html.Li([dcc.Link(day, href = day)], style={'font-size':'2vw'}) for day in days]
+        daysHtmlList = [
+            html.Li(
+                [
+                    dcc.Link(day, href = day),
+                    dcc.Link(
+                        [html.Button('View stats', style = {'verticalAlign' : 'middle',
+                                                            'margin-left' : '2vw'})],
+                        href='/stats/' + day,
+                    ),
+                ], 
+        style = {'font-size':'2vw'}) 
+        for day in days]
 
         # This is the index (a.k.a. main) page of the app
         index_page = html.Div([
@@ -54,25 +65,14 @@ def display_page(pathname):
         ])
 
         return index_page
-    elif len(pathname) > 6 and pathname[:6] == '/stats':
+    elif len(pathname) > 7 and pathname[:7] == '/stats/':
         # Remove the '/stats/' from the beginning of the pathname in order
         # to get the day
-        remainingPathname = pathname[6:]
+        day = pathname[7:]
 
-        day = None
-        type = None
-
-        if remainingPathname[:6] == '/time/':
-            day = remainingPathname[6:]
-            type = 'time'
-        elif remainingPathname[:12] == '/keystrokes/':
-            day = remainingPathname[12:]
-            type = 'keystrokes'
-
-
-        if type is None or day not in days:
+        if day not in days:
             return '404'
-        return statistics_vis.getStatisticsLayout(day, type)
+        return statistics_vis.getTabsLayout(day)
 
     else:
         # Remove the '/' from the beginning of the pathname in order
