@@ -125,16 +125,14 @@ def getStatisticsLayout(selectedDate, statType):
 
         
         if statType == 'time':
-            title = [html.H3(selectedDate), html.H3('Time : ' + str(totalPieValue)), dcc.Link(
-                        [html.Button('View timeline')],
-                        href='/' + selectedDate,
-                    ),]
+            statTitle = 'Time'
         else:
-            title = [html.H3(selectedDate), html.H3('Keystrokes : ' + str(totalPieValue)), dcc.Link(
-                        [html.Button('View timeline')],
-                        href='/timeline/' + selectedDate,
-                    ),]
-
+            statTitle = 'Keystrokes'
+            
+        title = [html.H3(selectedDate), html.H3(statTitle + ' : ' + str(totalPieValue)), dcc.Link(
+                                [html.Button('View timeline')],
+                                href='/' + selectedDate,
+                            )]
         layout = html.Div([
             html.Div([
                 html.Div(
