@@ -56,7 +56,16 @@ def getTimelineLayout(selectedDate):
     hourFiles.sort()
     
     return html.Div([
-        html.H1('Page 1'),
+        html.Div(
+            html.Center(html.H1('Timeline')),
+        ),
+        html.Div(
+            dcc.Link(
+                [html.Button('View stats')],
+                href='/stats/' + selectedDate,
+            ),
+        ),
+        html.Br(),
         html.Div(id='page-1-content'),
         dcc.Dropdown(
             id='my-dropdown',
@@ -171,7 +180,6 @@ def page_1_dropdown(hourFile, selectedDate):
             )
         for xElem, yElem, widthElem, baseElem, colorElem, textElem in zip(xData, yData, widthData, baseData, colorData, textData)],
         'layout': go.Layout(
-            title='Work and Pause Timeline',
             xaxis= dict(   
                 #range = [xRange[0],
                 #         xRange[0] + datetime.timedelta(minutes=25)],
