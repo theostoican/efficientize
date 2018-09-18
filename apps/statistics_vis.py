@@ -12,6 +12,8 @@ from functools import reduce
 import config
 from app import app
 
+# Function that returns the tab layout, containing the tabs
+# for each statistics
 def getTabsLayout(selectedDate):
     return html.Div([
         dcc.Tabs(id="tabs-header", value='tab-time', children=[
@@ -31,6 +33,9 @@ def render_content(tab, selectedDate):
     elif tab == 'tab-keystrokes':
         return getStatisticsLayout(selectedDate, 'keystrokes')
 
+# Splits the hover text, legend information and so on in multiple
+# lines without breaking the words and also limits the total
+# amount of information displayed
 def splitTextIntoHtmlLines(text):
     maxCharsPerLines = 30
     limitChars = 65
@@ -46,6 +51,8 @@ def splitTextIntoHtmlLines(text):
 
     return brLines
 
+# Effectively computes the layout for the type of statistics
+# inquired
 def getStatisticsLayout(selectedDate, statType):
     statsFile = config.LOGS_DIR + config.STATS_DIR + selectedDate
     statsHeap = []
@@ -55,6 +62,8 @@ def getStatisticsLayout(selectedDate, statType):
     numElemBarChart = 10
     numElemPieChart = 6
 
+    # Read the recorded data and put it in a heap in order to select a top 
+    # among the applications with respect to the type of statistics
     with open(statsFile, 'r') as statsFin:
         csvReader = csv.DictReader(statsFin)
         totalValue = 0
@@ -133,7 +142,8 @@ def getStatisticsLayout(selectedDate, statType):
                                 [html.Button('View timeline')],
                                 href='/' + selectedDate,
                             )]
-        layout = html.Div([
+
+        return html.Div([
             html.Div([
                 html.Div(
                     html.Center(title),                    
@@ -197,5 +207,3 @@ def getStatisticsLayout(selectedDate, statType):
             ),
             dcc.Link('Go Home', href='/')
         ])
-
-        return layout

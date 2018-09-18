@@ -24,7 +24,7 @@ tracker = Tracker()
 def getAvailableDays():
     availDates = os.listdir(config.LOGS_DIR + config.TIMELINE_DIR)
     
-    availDates.sort()
+    availDates.sort(reverse = True)
     
     return availDates
 
