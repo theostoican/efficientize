@@ -22,7 +22,7 @@ app.layout = html.Div([
 tracker = Tracker()
 
 def getAvailableDays():
-    availDates = os.listdir(config.LOGS_DIR + config.TIMELINE_DIR)
+    availDates = os.listdir(config.LOGS_DIR + config.STATS_DIR)
     
     availDates.sort(reverse = True)
     
