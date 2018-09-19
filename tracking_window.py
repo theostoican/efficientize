@@ -79,23 +79,6 @@ class Tracker:
             fileCsvWriter.writerow(header)
 
         return fileHandle, fileCsvWriter
-
-    def prepareTimelineFile(self, day, hour):
-        currDay = day
-        timelineHeader = ["start", "finish", "window", "keystrokes"]
-
-        # Variables used for keeping track of the timeline logs 
-        timelineDayDir = config.LOGS_DIR + config.TIMELINE_DIR + \
-                currDay + '/'    
-        timelineFileName = timelineDayDir + self.currHour
-        self.timelineFileHandle, self.timelineFileCsvWriter = \
-                self.createPathWithFile(timelineDayDir, timelineFileName,
-                timelineHeader)
-        
-        # Temp files
-        self.timelineTmpFileName = config.LOGS_DIR + config.TMP_TIMELINE
-        self.timelineTmpHandle, self.timelineTmpCsvWriter = \
-            self.createPathWithFile(config.LOGS_DIR, self.timelineTmpFileName)
         
     def onPress(self, _):
         self.keyStrokesLock.acquire()
@@ -323,7 +306,7 @@ class Tracker:
             # nothing
             pass
 
-    # TODO
+    # Function that safely dumps the data collected so far in a log file
     # @type : can take two values : 
     #   -> 'stats' 
     #   -> 'timeline'
@@ -362,31 +345,3 @@ class Tracker:
         # Atomically rename the temp file with the "official"
         # file name
         os.rename(tmpFileName, fileName)
-
-    def dumpStatistics(self, statsDir, fileName, header):
-        # Attempt to create path, if it does not already exist
-        try:
-            os.makedirs(statsDir)
-        except OSError:
-            pass
-
-        # Create statistics file
-        statisticsTmpFileName = config.LOGS_DIR + config.TMP_STATISTICS
-        statisticsTmpHandle, statisticsTmpCsvWriter = \
-            self.createPathWithFile(config.LOGS_DIR, statisticsTmpFileName)        
-        
-        # Write header
-        statisticsTmpCsvWriter.writerow(header)
-
-        # Write data into file
-        for key in self.timeMap:
-            statisticsTmpCsvWriter.writerow([key, self.timeMap[key], self.keystrokesMap[key]])
-
-        # Flush on physical storage
-        statisticsTmpHandle.flush()
-        os.fsync(statisticsTmpHandle.fileno())
-        statisticsTmpHandle.close()
-
-        # Atomically rename the temp file with the "official"
-        # file name
-        os.rename(statisticsTmpFileName, fileName)
