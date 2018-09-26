@@ -9,4 +9,7 @@ If you click on the blue text, you will open a timeline-like visualization tool,
 ![alt text](https://github.com/theostoican/efficientize/blob/master/images/timeline.png)
 From the top-left side of the timeline interface (and from the home page as well), you can access another type of visualization. Clicking the *Show stats* button leads you to the following, more statistically relevant page:
 ![alt text](https://github.com/theostoican/efficientize/blob/master/images/time.png)
+Here you can visualize some statistics regarding the apps in which you spent the largest amount of time. In the pie chart, on the one hand, you can see how the time you spent on the top 5 apps fits into the larger picture and how the time you spent on each activity relates to the total time. On the bar chart, on the other hand, you can see a top 10 of the apps in which you spent most of the time. In the example from above, you can see that on 25th September, I spent most of day in a *Chrome* Page, entitled **Time's Up Marinara** (approximately *14 hours and 22 minutes*). That is because I left the app open over night and when I finished the work and took a pause, and the *Marinara* timer opened a page in browser, telling me that I should start working.
+
+A similar statistics is available for keystrokes as well (by clicking on the second *Tab* - **Keystrokes statistics**).
 ![alt text](https://github.com/theostoican/efficientize/blob/master/images/keystrokes.png)
