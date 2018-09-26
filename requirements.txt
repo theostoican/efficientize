@@ -1,5 +1,8 @@
-dash==0.22.0
-dash-renderer==0.13.0
-dash-html-components==0.11.0
-dash-core-components==0.24.1
-plotly
+pytz==2017.3
+dash_core_components==0.29.0
+dash==0.26.5
+Flask_Caching==1.4.0
+plotly==3.1.0
+tzlocal==1.5.1
+pynput==1.4
+dash_html_components==0.11.0
