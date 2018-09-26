@@ -14,7 +14,7 @@ Here you can visualize some statistics regarding the apps in which you spent the
 
 A similar statistics is available for keystrokes as well (by clicking on the second *Tab* - **Keystrokes statistics**). Similarly to the previous *Tab*, you can examine the data in both the pie chart (for *overview*) and the bar chart (for *a top*), while hovering provides more intimae details (including the *frequency* of keystrokes). For example, on the same day as above, the app recorded roughly 2000 keystrokes while editing this README :).
 ![alt text](https://github.com/theostoican/efficientize/blob/master/images/keystrokes.png)
-> How is it made?
+## How is it made?
 **efficientize** is made in pure *Python* and it uses for visualization a nice framework named *Dash*, which is based on *Plotly*. If you want to read more about Dash, take a look [here](https://dash.plot.ly/).
 
 The main reason why I have chosen Dash is because, after careful analysis, I came to the conclusion that it was the *best* framework (if not the *only*) that fulfils the following requiremens:
