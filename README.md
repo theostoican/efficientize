@@ -1,5 +1,6 @@
 # efficientize
-> Do you often find yourself at the end of the day wondering how the time passed by so fast ? Many people struggle with this kind of feeling and they desperately try to remember how much time they really spent working and how much time recreating. I am one such example. If you are too and want to gain some insight in your everyday activity at the computer (especially if you are a computer progammer), you've arrived at the right place.
+> Do you often find yourself at the end of the day wondering how the time passed by so fast ? Many people struggle with this kind of feeling and they desperately try to remember how much time they really spent working and how much time recreating. I am one such example. If you are the same and want to gain some insight in your everyday activity at the computer (especially if you are a computer progammer), you've arrived at the right place.
+
 > What is it?
 **efficientize** is an app that helps you visualize your daily activity in a more accurate way without any personal biases that people usually have when they start analyzing their performance. But, no more words, and let us see how it works.
 > How does it work ?
